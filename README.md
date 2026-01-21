@@ -1,10 +1,10 @@
 # Offshore Wind Calculator
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=/panel/Panel_app_pkg)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main)
 
 An interactive web-based calculator for offshore wind farm planning, implementing **Ginsberg's (2019) Swept Area Method** with regional data for the Northeast Atlantic US as a proxy for Scotian Shelf (Nova Scotia) conditions.
 
-**[▶ Launch Calculator on Binder](https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=/panel/Panel_app_pkg)** *(no installation required)*
+**[▶ Launch Calculator on Binder](https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main)** *(no installation required)*
 
 ---
 
