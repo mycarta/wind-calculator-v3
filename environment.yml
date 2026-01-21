@@ -1,0 +1,40 @@
+# Conda environment for Offshore Wind Calculator
+# 
+# Create environment:
+#   conda env create -f environment.yml
+#
+# Activate environment:
+#   conda activate wind-panel-app
+#
+# Update environment (after modifying this file):
+#   conda env update -f environment.yml --prune
+#
+# Export current environment (for reproducibility):
+#   conda env export > environment-lock.yml
+
+name: wind-panel-app
+
+channels:
+  - conda-forge
+  - pyviz
+  - defaults
+
+dependencies:
+  # Core Python
+  - python=3.12
+  
+  # Scientific computing
+  - numpy=1.26.*
+  
+  # Panel app and visualization (pinned for reproducibility)
+  - panel=1.4.4
+  - bokeh=3.4.1
+  - jupyter_bokeh=2.0.4
+  
+  # Jupyter environment
+  - notebook
+  - ipykernel
+  
+  # Testing
+  - pytest
+  - hypothesis
