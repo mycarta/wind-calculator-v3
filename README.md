@@ -4,7 +4,17 @@
 
 An interactive web-based calculator for offshore wind farm planning, implementing **Ginsberg's (2019) Swept Area Method** with regional data for the Northeast Atlantic US as a proxy for Scotian Shelf (Nova Scotia) conditions.
 
-**[▶ Launch Calculator on Binder](https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=lab/tree/Panel_app_pkg.ipynb)** *(opens in JupyterLab - run all cells to start the app)*
+**[▶ Launch Calculator on Binder](https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=lab/tree/Panel_app_pkg.ipynb)** *(no installation required)*
+
+### How to Run on Binder
+
+1. Click the **Launch Binder** badge above (allow 1-2 minutes for the environment to load)
+2. Once JupyterLab opens, you'll see the notebook `Panel_app_pkg.ipynb`
+3. From the menu, select **Run → Run All Cells** (or press `Shift+Enter` twice to run Cells 1-2)
+4. The interactive calculator will appear below Cell 2
+5. Adjust the sliders and dropdowns to explore different scenarios
+
+> **Note:** Do not run Cell 3 on Binder - it's for local development only.
 
 ---
 
