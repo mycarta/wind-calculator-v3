@@ -69,6 +69,24 @@ https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=lab/tree/Pane
 - Removed empty notebook cells
 - Commented out Cell 3 for Binder safety
 
+### 5. Binder Migration Documentation ✅
+
+Updated all Binder migration docs with lessons learned:
+
+| Document | Purpose |
+|----------|---------|
+| `docs/session_summary_2026-01-21.md` | This file — full session record |
+| `docs/binder_migration_guide.md` | Comprehensive guide for migrating old Panel apps |
+| `docs/CLAUDE_INSTRUCTIONS_BINDER_MIGRATION.md` | Instructions for Claude in other chats |
+| `docs/binder_migration_prompt.md` | Copy-paste prompt for new Claude sessions |
+
+**Key updates to all docs:**
+- JupyterLab approach recommended (reliable)
+- `/panel/` URL deprecated (times out)
+- Comment out `pn.serve()` guidance
+- "Run All Cells" instructions for README
+- Troubleshooting section with real errors encountered
+
 ---
 
 ## Current File States
@@ -78,6 +96,9 @@ https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=lab/tree/Pane
 - `Panel_app_pkg.ipynb` — UI enhancements + `.servable()` call + Cell 3 commented
 - `environment.yml` — Added `jupyter-panel-proxy` (pyviz channel)
 - `.gitignore` — New file
+- `docs/binder_migration_guide.md` — Updated with lessons learned
+- `docs/CLAUDE_INSTRUCTIONS_BINDER_MIGRATION.md` — Updated with JupyterLab approach
+- `docs/binder_migration_prompt.md` — Updated prompt for other chats
 
 ### Files Created This Session
 - `app.py` — Standalone Panel app (created during debugging, kept for future use)
@@ -145,6 +166,8 @@ git reset --hard origin/main
 ## Git Log (Key Commits)
 
 ```
+acdef64 docs: update Binder migration prompt with JupyterLab approach
+0d9be85 docs: update session summary and Binder migration guides with lessons learned
 0f56301 docs: remove outdated Cell 3 note
 afb8638 chore: comment out pn.serve for Binder safety
 4a52021 docs: add step-by-step Binder instructions
