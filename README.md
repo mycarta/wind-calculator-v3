@@ -14,8 +14,6 @@ An interactive web-based calculator for offshore wind farm planning, implementin
 4. The interactive calculator will appear below Cell 2
 5. Adjust the sliders and dropdowns to explore different scenarios
 
-> **Note:** Do not run Cell 3 on Binder - it's for local development only.
-
 ---
 
 ## 1. Overview
