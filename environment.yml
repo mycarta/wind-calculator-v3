@@ -35,6 +35,9 @@ dependencies:
   - notebook
   - ipykernel
   
+  # Binder deployment (Panel proxy for mybinder.org)
+  - jupyter-panel-proxy
+  
   # Testing
   - pytest
   - hypothesis
