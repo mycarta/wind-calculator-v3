@@ -1,7 +1,7 @@
 # Session Summary: Wind Calculator Development
 
 **Date:** January 21, 2026  
-**Session:** README rewrite + Panel UI enhancements  
+**Session:** README rewrite + Panel UI enhancements + Binder deployment  
 **Environment:** VSCode + GitHub Copilot (Claude)
 
 ---
@@ -40,91 +40,95 @@ Updated `Panel_app_pkg.ipynb` (Cell 2) with:
 | Updated app title | "Offshore Wind Calculator" |
 | Air density precision | 3 decimal places |
 
+### 3. Binder Deployment ✅ (JupyterLab Approach)
+
+**Working URL:**
+```
+https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=lab/tree/Panel_app_pkg.ipynb
+```
+
+**What works:**
+- Users click badge → JupyterLab opens with notebook
+- Run → Run All Cells → App appears inline below Cell 2
+- All widgets interactive
+
+**What we tried that didn't work:**
+- `jupyter-panel-proxy` with `?urlpath=/panel/Panel_app_pkg` — timed out with 500 errors
+- Custom `start` script with `panel serve app.py` — Binder didn't execute it
+- Direct Panel serve approach — various timeout issues
+
+**Final approach:**
+- JupyterLab fallback with step-by-step instructions in README
+- Cell 3 (`pn.serve()`) commented out to avoid confusion
+- `jupyter-panel-proxy` still in environment.yml (doesn't hurt, may help future attempts)
+
+### 4. Repository Cleanup ✅
+
+- Removed `__pycache__/` from git tracking
+- Added `.gitignore` with standard Python ignores
+- Removed empty notebook cells
+- Commented out Cell 3 for Binder safety
+
 ---
 
 ## Current File States
 
 ### Files Modified This Session
-- `README.md` — New comprehensive documentation
-- `Panel_app_pkg.ipynb` — UI enhancements in Cell 2
+- `README.md` — Comprehensive docs + Binder instructions
+- `Panel_app_pkg.ipynb` — UI enhancements + `.servable()` call + Cell 3 commented
+- `environment.yml` — Added `jupyter-panel-proxy` (pyviz channel)
+- `.gitignore` — New file
+
+### Files Created This Session
+- `app.py` — Standalone Panel app (created during debugging, kept for future use)
 
 ### Files Unchanged (Reference)
 - `wind_calculations.py` — Core calculation module (finalized, validated)
-- `environment.yml` — Conda environment (working)
 - `CLAUDE_INSTRUCTIONS.md` — Project constraints
-- `docs/wind_calculator_handoff_updated.md` — Main briefing document
 
 ### Files Deleted
-- `README_DRAFT.md` — Draft was finalized and removed
+- `README_DRAFT.md` — Draft was finalized
+- `postBuild`, `start` — Removed (didn't work with Binder)
+
+---
+
+## Binder Deployment Lessons Learned
+
+### What Works Reliably
+1. **JupyterLab approach:** `?urlpath=lab/tree/NotebookName.ipynb`
+2. Users run cells manually → app displays inline
+3. Works with Panel 1.4.4 + Bokeh 3.4.1
+
+### What Doesn't Work (as of Jan 2026)
+1. `jupyter-panel-proxy` with `?urlpath=/panel/NotebookName` — timeouts
+2. Custom `start` scripts — Binder doesn't execute reliably
+3. Direct `panel serve` approaches — various issues
+
+### Recommendations for Other Projects
+- Start with JupyterLab approach (reliable)
+- Keep `jupyter-panel-proxy` in environment.yml (future compatibility)
+- Add `.servable()` to app definition (doesn't hurt)
+- Include clear "Run All Cells" instructions in README
 
 ---
 
 ## How to Recover / Restart
 
-### If Binder deployment breaks things:
+### If something breaks:
 
-1. **Restore notebook to pre-Binder state:**
-   ```bash
-   git checkout HEAD -- Panel_app_pkg.ipynb
-   ```
+```bash
+# Restore notebook
+git checkout HEAD -- Panel_app_pkg.ipynb
 
-2. **Remove any Binder config files created:**
-   ```bash
-   # If these were created and need removal:
-   rm postBuild
-   rm jupyter_panel_config.py
-   rm start
-   ```
+# Or full reset
+git reset --hard origin/main
+```
 
-3. **Verify app still works locally:**
-   - Open `Panel_app_pkg.ipynb`
-   - Restart kernel
-   - Run Cell 1 (imports)
-   - Run Cell 2 (app definition)
-   - Run Cell 3 (`pn.serve(app_panel)`)
-   - App should launch in browser
+### Local development:
 
-### If you need to start fresh:
-
-1. **Clone from GitHub:**
-   ```bash
-   git clone https://github.com/mycarta/wind-calculator-v3.git
-   cd wind-calculator-v3
-   ```
-
-2. **Create/activate environment:**
-   ```bash
-   conda env create -f environment.yml
-   conda activate wind-panel-app
-   ```
-
-3. **Verify tests pass:**
-   ```bash
-   python -m pytest -v
-   ```
-
----
-
-## What's Next: Binder Deployment
-
-### Goal
-Enable the app to run on mybinder.org so users can try it without installing anything.
-
-### Approach (from handoff document Section 4.4)
-1. Research **current** Panel Binder documentation (not 2020-2021 patterns)
-2. Restructure notebook for dual local/Binder deployment
-3. Create configuration files (`postBuild`, etc.)
-4. Test on mybinder.org
-5. Add Binder badge to README
-
-### Key Resources
-- https://panel.holoviz.org/how_to/deployment/binder.html
-- https://mybinder.readthedocs.io/
-
-### Critical Constraints (from CLAUDE_INSTRUCTIONS.md)
-- Consult CURRENT Panel docs for Binder
-- Test incrementally
-- Maintain local deployment capability
+1. Uncomment Cell 3 (`pn.serve(app_panel)`)
+2. Run Cells 1-3
+3. App opens in browser at localhost
 
 ---
 
@@ -138,18 +142,18 @@ Enable the app to run on mybinder.org so users can try it without installing any
 
 ---
 
-## Git Status Before Binder Work
+## Git Log (Key Commits)
 
-Before proceeding, commit current changes:
-
-```bash
-git add README.md Panel_app_pkg.ipynb
-git commit -m "docs: comprehensive README rewrite, feat: Panel UI enhancements"
-git push
 ```
-
-This creates a safe checkpoint to return to if needed.
+0f56301 docs: remove outdated Cell 3 note
+afb8638 chore: comment out pn.serve for Binder safety
+4a52021 docs: add step-by-step Binder instructions
+7148f88 deploy: fallback to JupyterLab approach
+51e3d6f Fix: suppress param FutureWarning
+dc8a59b Fix: remove duplicate pn.extension() call
+c3aa96b deploy: enable Binder deployment with jupyter-panel-proxy
+```
 
 ---
 
-*End of Session Summary*
+*Session completed: January 21, 2026*

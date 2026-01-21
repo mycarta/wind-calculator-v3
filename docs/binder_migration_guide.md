@@ -2,6 +2,20 @@
 
 **Context:** This guide is for updating Panel apps that were built in 2020-2021 and work locally but no longer deploy on Binder. Panel deployment patterns have changed significantly.
 
+**Updated:** January 2026 — Based on real-world debugging of wind-calculator project.
+
+---
+
+## TL;DR: The Reliable Approach (JupyterLab)
+
+After extensive testing, the **most reliable approach** for Panel apps on Binder is:
+
+1. **URL pattern:** `?urlpath=lab/tree/NotebookName.ipynb` (opens JupyterLab)
+2. **User action:** Run → Run All Cells
+3. **App displays:** Inline in notebook output
+
+The direct Panel serve approach (`?urlpath=/panel/NotebookName`) via `jupyter-panel-proxy` often times out.
+
 ---
 
 ## Quick Diagnosis Checklist
@@ -25,11 +39,9 @@ channels:
 dependencies:
   - panel
   - bokeh
-  - jupyter-panel-proxy   # ← THIS IS THE KEY ADDITION
+  - jupyter-panel-proxy   # ← Keep this (helps, doesn't hurt)
   - notebook
 ```
-
-**The `jupyter-panel-proxy` package is essential** — it enables Panel to work with mybinder.org's JupyterHub proxy.
 
 ---
 
@@ -44,60 +56,57 @@ pn.serve(app)  # Works locally, fails on Binder
 
 **New pattern (works both locally and on Binder):**
 ```python
-# Define the app
+# Cell 1: Imports
+import panel as pn
+pn.extension()
+
+# Cell 2: App definition
 app = pn.Column(...)
 
-# Make servable for Binder (jupyter-panel-proxy uses this)
+# Make servable (displays inline when cell runs)
 app.servable()
 
-# Optionally keep pn.serve() in a separate cell for local development
-# pn.serve(app)  # Run this cell only for local testing
+# Cell 3 (optional, for local dev only - comment out for Binder):
+# pn.serve(app)
 ```
 
-**Key insight:** `app.servable()` registers the app with Panel's server. The `jupyter-panel-proxy` then serves it through Binder's proxy.
+**Key insight:** `app.servable()` displays the app inline in the notebook output when the cell is run.
 
 ---
 
-### 3. Check the Binder URL Pattern
+### 3. Use the JupyterLab URL Pattern
 
-**Old patterns (may be broken):**
+**Recommended (reliable):**
 ```
-?urlpath=lab/tree/notebook.ipynb
-?filepath=notebook.ipynb
-```
-
-**Current pattern:**
-```
-https://mybinder.org/v2/gh/OWNER/REPO/BRANCH?urlpath=/panel/NOTEBOOK_NAME
+https://mybinder.org/v2/gh/OWNER/REPO/BRANCH?urlpath=lab/tree/NotebookName.ipynb
 ```
 
-Example:
+**Alternative (often fails with timeouts):**
 ```
-https://mybinder.org/v2/gh/mycarta/wind-calculator-v3/main?urlpath=/panel/Panel_app_pkg
+https://mybinder.org/v2/gh/OWNER/REPO/BRANCH?urlpath=/panel/NotebookName
 ```
-
-**Note:** `NOTEBOOK_NAME` is the notebook filename **without** the `.ipynb` extension.
 
 ---
 
-### 4. Check for Deprecated Configuration Files
+### 4. Remove Obsolete Configuration Files
 
-**Files that may need removal or update:**
+These often cause more problems than they solve:
 
-| File | Old Usage | Current Status |
-|------|-----------|----------------|
-| `postBuild` | Enable server extensions | Usually NOT needed with jupyter-panel-proxy |
-| `jupyter_panel_config.py` | Server config | Usually NOT needed |
-| `start` | Custom startup | Usually NOT needed |
-| `apt.txt` | System packages | Still valid if needed |
-
-**With `jupyter-panel-proxy` in environment.yml, you typically don't need `postBuild` scripts.**
+| File | Status | Recommendation |
+|------|--------|----------------|
+| `postBuild` | NOT needed | Delete unless doing something specific |
+| `start` | NOT needed | Delete — Binder doesn't reliably execute custom start scripts |
+| `jupyter_panel_config.py` | NOT needed | Delete |
+| `app.py` | Optional | Keep if you want a standalone serve option |
 
 ---
 
 ### 5. Check Panel Version Compatibility
 
-**Potential issues:**
+**Known issues:**
+- `style=` → `styles=` (Panel 1.0+)
+- `pn.extension()` should only be called once per notebook
+- Remove `sizing_mode` parameter if layout is too wide
 - Panel API changes between versions
 - `styles` vs `style` parameter (Panel 1.0+ uses `styles`)
 - Widget parameter names may have changed
@@ -118,84 +127,136 @@ dependencies:
   - python=3.12          # Or your preferred version
   - panel>=1.0           # Modern Panel
   - bokeh
-  - jupyter-panel-proxy  # Essential for Binder
+  - jupyter-panel-proxy  # Keep for potential future use
   - notebook
   - ipykernel
   # ... your other dependencies
 ```
 
-### Step 2: Update Notebook
-Add `.servable()` call at the end of your app definition:
+### Step 2: Update Notebook Structure
+
+**Cell 1 — Imports:**
 ```python
-# Your existing app code
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="param")
+
+import panel as pn
+# ... your other imports
+
+pn.extension()  # Only call once!
+```
+
+**Cell 2 — App definition:**
+```python
+# Your app code...
 app = pn.Column(
     pn.pane.Markdown("# My App"),
     # ... widgets and content
 )
 
-# Add this line for Binder compatibility
+# Add this at the END of the cell for Binder
 app.servable()
 ```
 
-### Step 3: Update README Badge
+**Cell 3 — Local development (commented out):**
+```python
+# For local development only (uncomment to use):
+# pn.serve(app)
+```
+
+### Step 3: Update README with Binder Badge and Instructions
+
 ```markdown
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/OWNER/REPO/BRANCH?urlpath=/panel/NOTEBOOK_NAME)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/OWNER/REPO/BRANCH?urlpath=lab/tree/NotebookName.ipynb)
+
+### How to Run on Binder
+
+1. Click the **Launch Binder** badge above (allow 1-2 minutes for the environment to load)
+2. Once JupyterLab opens, you'll see the notebook
+3. From the menu, select **Run → Run All Cells**
+4. The interactive app will appear below the main cell
+5. Adjust the widgets to explore different scenarios
 ```
 
 ### Step 4: Remove Obsolete Files
-Delete if present (usually not needed now):
-- `postBuild` (unless you have other setup needs)
-- `jupyter_panel_config.py`
+Delete if present:
+- `postBuild`
 - `start`
+- `jupyter_panel_config.py`
 
 ### Step 5: Test
-1. Push to GitHub
-2. Click Binder badge
-3. Wait for build (first build takes 2-5 minutes)
-4. Verify app loads and widgets work
+1. **Local test:** Run notebook cells, verify app works
+2. **Push to GitHub**
+3. **Binder test:** Click badge, wait for build (2-5 minutes first time)
+4. **Verify:** Run All Cells, app displays, widgets work
 
 ---
 
 ## Troubleshooting
 
-### "404 Not Found" on Binder
-- Check the `urlpath` matches your notebook name exactly (case-sensitive, no `.ipynb`)
-- Ensure `jupyter-panel-proxy` is in environment.yml
+### "500: Internal Server Error - could not start panel in time"
+This happens with `?urlpath=/panel/NotebookName`. **Solution:** Use JupyterLab approach instead:
+```
+?urlpath=lab/tree/NotebookName.ipynb
+```
+
+### "Binder inaccessible" after container starts
+- Session may have timed out waiting for Panel
+- Try JupyterLab URL instead
+- May need to wait for fresh build after commits
 
 ### App loads but widgets don't work
 - Check for Panel API changes (especially `styles` vs `style`)
 - Verify all dependencies are in environment.yml
+- Check browser console for JavaScript errors
 
 ### Build fails
 - Check environment.yml syntax (YAML is whitespace-sensitive)
-- Ensure channels include `pyviz` or `conda-forge`
+- Ensure channels include `conda-forge` and `pyviz`
 - Check for package version conflicts
 
-### Blank page
-- Ensure `app.servable()` is called
-- Check browser console for JavaScript errors
+### App stretches too wide
+- Remove `sizing_mode='stretch_width'` from `pn.extension()`
+- Just use `pn.extension()` with no parameters
+
+### Local jupyter_bokeh errors
+```
+TypeError: standalone_docs_json_and_render_items() takes 1 positional argument but 2 were given
+```
+This is a local environment version mismatch. **Solutions:**
+- Update: `conda update jupyter_bokeh -c conda-forge`
+- Or use `pn.serve(app)` for local testing instead of inline display
+
+### FutureWarning from param module
+Add to the top of your imports:
+```python
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="param")
+```
 
 ---
 
 ## Key Resources
 
-- **Current Panel Binder docs:** https://panel.holoviz.org/how_to/deployment/binder.html
-- **Example repo (working):** https://github.com/pyviz-demos/clifford
+- **Panel deployment docs:** https://panel.holoviz.org/how_to/deployment/index.html
+- **Panel Binder docs:** https://panel.holoviz.org/how_to/deployment/binder.html
 - **mybinder.org docs:** https://mybinder.readthedocs.io/
 
 ---
 
-## Summary: The Minimal Fix
+## Summary: The Reliable Fix
 
-For most 2020-2021 Panel apps, the fix is:
+For most 2020-2021 Panel apps:
 
 1. **Add to environment.yml:** `jupyter-panel-proxy` (with `pyviz` channel)
 2. **Add to notebook:** `app.servable()` after app definition
-3. **Use URL:** `?urlpath=/panel/NotebookName`
+3. **Comment out:** `pn.serve(app)` (keep for local dev)
+4. **Use URL:** `?urlpath=lab/tree/NotebookName.ipynb` (JupyterLab approach)
+5. **Add to README:** Step-by-step "Run All Cells" instructions
 
-That's often all you need!
+The `?urlpath=/panel/NotebookName` direct approach often times out — JupyterLab is more reliable.
 
 ---
 
-*Created: January 2026*
+*Updated: January 2026*
 *Based on successful migration of wind-calculator project*
