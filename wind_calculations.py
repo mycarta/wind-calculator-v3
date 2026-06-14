@@ -7,8 +7,11 @@ for calculating offshore wind power and energy outputs.
 Methodology:
     - Power density uses Energy Pattern Factor (EPF = 1.91) to correct for
       wind speed distribution (Rayleigh/Weibull k=2)
-    - Overall conversion efficiency (20-30%) accounts for Betz limit, 
-      availability, wake losses, electrical losses, and power curve effects
+    - Overall conversion efficiency (20-30%) is Ginsberg's single lumped derating:
+      Betz-limited capture (59.3% ceiling) reduced by electrical conversion losses,
+      wind speed/direction variability, and maintenance downtime. Ginsberg
+      recommends 20% for conservative planning. (He does NOT provide a
+      component-by-component breakdown; see derated_annual_energy_output.)
 
 Data Sources:
     - Air density and wind speed lookup tables: von Krauland et al. (2023)
@@ -20,12 +23,15 @@ References:
         Development Models Transforming the Grid. Business Expert Press.
         ISBN: 978-1-63157-931-8
     
-    von Krauland, A.-K., et al. (2023). United States offshore wind energy atlas.
-        Applied Energy, 345, 121243. 
-        https://doi.org/10.1016/j.apenergy.2023.121243
+    von Krauland, A.-K., Long, Q., Enevoldsen, P., & Jacobson, M. Z. (2023).
+        United States offshore wind energy atlas: availability, potential, and
+        economic insights based on wind speeds at different altitudes and
+        thresholds and policy-informed exclusions.
+        Energy Conversion and Management: X, 20, 100410.
+        https://doi.org/10.1016/j.ecmx.2023.100410
 
 Author: Matteo Niccoli
-Updated: January 2026
+Updated: February 2026 (corrected efficiency attribution and von Krauland citation)
 """
 
 import numpy as np
@@ -39,23 +45,41 @@ HOURS_PER_YEAR = 8760
 EPF_RAYLEIGH = 1.91  # Energy Pattern Factor for Rayleigh distribution (Weibull k=2)
 BETZ_LIMIT = 0.593   # Theoretical maximum power extraction (59.3%)
 DEFAULT_EFFICIENCY = 0.20  # Ginsberg's recommended conservative value
+AIR_DENSITY_100M = 1.21328  # kg/m^3 at 100 m (standard atmosphere); von Krauland (2023) SI S5, ref [95]
 
 
 # =============================================================================
 # Lookup Tables
 # =============================================================================
 
-# Air density (kg/m³) by hub height/rotor diameter (m)
-# Source: von Krauland et al. (2023), Northeast Atlantic US offshore data
-# Used as proxy for Scotian Shelf (Nova Scotia) conditions
-air_density_lookup = {
-    100: 1.000,
-    150: 0.995,
-    200: 0.990,
-    250: 0.986
+# Air density by hub height/rotor diameter (m), in kg/m^3.
+# Source: von Krauland et al. (2023), Supplementary Material Section S5 (ref [95]).
+# von Krauland gives the standard-atmosphere air density at 100 m
+# (AIR_DENSITY_100M = 1.21328 kg/m^3) and DIMENSIONLESS ratios relative to 100 m for
+# higher hub heights. Absolute density = AIR_DENSITY_100M * ratio. Air density here is
+# standard-atmosphere by altitude (NOT region-specific).
+#
+# CORRECTION (Feb 2026): earlier versions stored the RATIOS (1.000, 0.995, 0.990, 0.986)
+# and fed them into the power equation directly as rho, underestimating all outputs by
+# the factor AIR_DENSITY_100M (~17.6%). Now resolved to absolute densities.
+air_density_ratio_lookup = {
+    100: 1.0,
+    150: 0.995203086,
+    200: 0.990414414,
+    250: 0.985650468,
 }
 
+# Absolute air density (kg/m^3) by hub height (m)
+air_density_lookup = {
+    height: AIR_DENSITY_100M * ratio
+    for height, ratio in air_density_ratio_lookup.items()
+}
+
+# Default air density used when none is supplied (200 m hub height)
+DEFAULT_AIR_DENSITY = air_density_lookup[200]
+
 # Average wind speed (m/s) by hub height/rotor diameter (m)
+# NOTE: specific values pending verification against von Krauland (2023) SI Table S8.
 # Source: von Krauland et al. (2023), Northeast Atlantic US offshore data
 wind_speed_lookup = {
     100: 9.54,
@@ -69,37 +93,37 @@ wind_speed_lookup = {
 # Core Calculation Functions
 # =============================================================================
 
-def annual_power_density(wind_speed: float, air_density: float = 0.990, 
+def annual_power_density(wind_speed: float, air_density: float = DEFAULT_AIR_DENSITY, 
                          energy_pattern_factor: float = EPF_RAYLEIGH) -> np.float64:
     """
     Calculate the EPF-adjusted mean power density of wind.
 
     Uses Energy Pattern Factor to correct for wind speed distribution.
-    For Rayleigh distribution (Weibull k=2), EPF ≈ 1.91.
+    For Rayleigh distribution (Weibull k=2), EPF ~ 1.91.
 
     Parameters
     ----------
     wind_speed : float
         Mean wind speed in m/s (rounded to 2 decimal places)
     air_density : float, optional
-        Air density in kg/m³, default 0.990 (value at 200 m altitude).
+        Air density in kg/m^3, default DEFAULT_AIR_DENSITY (~1.20165 kg/m^3, 200 m hub height).
         Other typical values:
             - 0 m (sea level): 1.225
-            - 100 m: 1.000
-            - 150 m: 0.995
-            - 250 m: 0.986
+            - 100 m: 1.21328
+            - 150 m: 1.20746
+            - 250 m: 1.19587
     energy_pattern_factor : float, optional
         Default is 1.91, representing a Rayleigh distribution (k=2).
-        This corrects for the fact that ⟨v³⟩ ≠ ⟨v⟩³.
+        This corrects for the fact that <v^3> != <v>^3.
 
     Returns
     -------
     np.float64
-        Mean power density in W/m² (rounded to nearest integer)
+        Mean power density in W/m^2 (rounded to nearest integer)
 
     Formula
     -------
-    P̄ₐ = ½ρ · EPF · v̄³
+    P_bar_A = (1/2)rho * EPF * v_bar^3
 
     Source
     ------
@@ -127,11 +151,11 @@ def swept_area(diameter: float) -> float:
     Returns
     -------
     float
-        Swept area in square meters (m²).
+        Swept area in square meters (m^2).
 
     Formula
     -------
-    A = π(D/2)² = πD²/4
+    A = pi(D/2)^2 = piD^2/4
 
     Example
     -------
@@ -150,7 +174,7 @@ def power_kw(power_density: float, rotor_diameter: float) -> float:
     Parameters
     ----------
     power_density : float
-        Mean power density in W/m² (from annual_power_density).
+        Mean power density in W/m^2 (from annual_power_density).
     rotor_diameter : float
         Rotor diameter in meters.
 
@@ -161,12 +185,12 @@ def power_kw(power_density: float, rotor_diameter: float) -> float:
 
     Formula
     -------
-    P̄ = P̄ₐ × A / 1000
+    P_bar = P_bar_A x A / 1000
 
     Example
     -------
     >>> power_kw(104, 50)
-    204.0  # Matches Ginsberg worked example (104 W/m² × 1963.5 m²)
+    204.0  # Matches Ginsberg worked example (104 W/m^2 x 1963.5 m^2)
     """
     area = swept_area(rotor_diameter)
     return np.rint((power_density * area) / 1000)
@@ -188,7 +212,7 @@ def annual_energy_output(power_kw_val: float) -> float:
 
     Formula
     -------
-    AEP_nd = P̄ × 8760 / 1000
+    AEP_nd = P_bar x 8760 / 1000
 
     Example
     -------
@@ -203,12 +227,13 @@ def derated_annual_energy_output(power_kw: float, efficiency: float = DEFAULT_EF
     """
     Calculate the derated annual energy output accounting for all losses.
 
-    Applies overall conversion efficiency to account for:
-    - Betz limit & real Cp (~40% of theoretical 59.3%)
-    - Availability (~95-97%)
-    - Wake losses (~5-15%, depends on spacing)
-    - Electrical losses (~2-3%)
-    - Power curve effects (cut-in, rated capping, cut-out)
+    Applies Ginsberg's single overall conversion efficiency (a lumped derating).
+    Ginsberg caps capture at the Betz limit (59.3%) and notes that real turbines
+    deliver roughly 20-30% once electrical conversion losses, changes in wind
+    speed and direction, and maintenance downtime are accounted for. He does NOT
+    decompose the factor into component sub-efficiencies; 20% is his conservative
+    recommended value. (A component-by-component breakdown should not be
+    attributed to Ginsberg.)
 
     Parameters
     ----------
@@ -226,7 +251,7 @@ def derated_annual_energy_output(power_kw: float, efficiency: float = DEFAULT_EF
 
     Formula
     -------
-    AEP_d = η × P̄ × 8760 / 1000
+    AEP_d = eta x P_bar x 8760 / 1000
 
     Source
     ------
@@ -235,7 +260,7 @@ def derated_annual_energy_output(power_kw: float, efficiency: float = DEFAULT_EF
     Example
     -------
     >>> derated_annual_energy_output(204, 0.20)
-    357.0  # Matches Ginsberg worked example (1787 × 0.20)
+    357.0  # Matches Ginsberg worked example (1787 x 0.20)
     """
     annual_energy_mwh = power_kw * HOURS_PER_YEAR * efficiency / 1000
     return np.rint(annual_energy_mwh)
@@ -247,12 +272,12 @@ def possible_turbine_installations(available_area_km2: float, rotor_diameter_m: 
     Calculate the number of possible wind turbine installations.
 
     Uses a square grid layout where center-to-center spacing is
-    F × D (spacing factor × rotor diameter).
+    F x D (spacing factor x rotor diameter).
 
     Parameters
     ----------
     available_area_km2 : float
-        Total available area in square kilometers (km²).
+        Total available area in square kilometers (km^2).
     rotor_diameter_m : float
         Turbine rotor diameter in meters (m).
     spacing_factor : float
@@ -267,20 +292,21 @@ def possible_turbine_installations(available_area_km2: float, rotor_diameter_m: 
 
     Formula
     -------
-    N = Available_Area / (F × D)²
+    N = Available_Area / (F x D)^2
 
     Source
     ------
-    von Krauland, A.-K., et al. (2023). United States offshore wind energy atlas.
-    Supplemental material.
+    von Krauland, A.-K., Long, Q., Enevoldsen, P., & Jacobson, M. Z. (2023).
+    United States offshore wind energy atlas. Energy Conversion and Management: X,
+    20, 100410. https://doi.org/10.1016/j.ecmx.2023.100410 (Supplemental material.)
 
     Example
     -------
     >>> possible_turbine_installations(1, 50, 6)
     11
-    # Available Area = 1 km² = 1,000,000 m²
-    # Turbine Spacing Density = (6 × 50)² = 90,000 m²
-    # Nturb = 1,000,000 / 90,000 = 11.11 → 11 turbines
+    # Available Area = 1 km^2 = 1,000,000 m^2
+    # Turbine Spacing Density = (6 x 50)^2 = 90,000 m^2
+    # Nturb = 1,000,000 / 90,000 = 11.11 -> 11 turbines
     """
     available_area_m2 = available_area_km2 * 1_000_000
     spacing_density = (spacing_factor * rotor_diameter_m) ** 2
